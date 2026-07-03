@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Office Energy Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <div>
+          <h1>Office Energy Monitor</h1>
+          <p class="subtitle">Live dashboard · shared backend with the Discord bot</p>
+        </div>
+      </div>
+      <div class="clock">
+        <div class="time" id="sim-time">--:--</div>
+        <div class="badges">
+          <span class="badge" id="office-badge">office hours</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- Office layout (top view) -->
+      <section class="card span-2" id="layout-card">
+        <div class="card-head">
+          <h2>Office layout — top view</h2>
+          <span class="hint">live · updates on its own</span>
+        </div>
+        <div class="office" id="office"></div>
+      </section>
+
+      <!-- Power meter -->
+      <section class="card" id="power-card">
+        <div class="card-head"><h2>Power consumption</h2></div>
+        <div class="power-total">
+          <span class="big" id="power-total">0</span><span class="unit">W</span>
+        </div>
+        <div class="today">Today so far: <strong id="usage-kwh">0</strong> kWh</div>
+        <div class="rooms-power" id="rooms-power"></div>
+      </section>
+
+      <!-- Alerts -->
+      <section class="card" id="alerts-card">
+        <div class="card-head"><h2>Active alerts</h2></div>
+        <div class="alerts" id="alerts"></div>
+      </section>
+
+      <!-- Device status panel -->
+      <section class="card span-2" id="devices-card">
+        <div class="card-head"><h2>Device status</h2><span class="hint">by room</span></div>
+        <div class="devices" id="devices"></div>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

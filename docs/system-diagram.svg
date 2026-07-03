@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" font-family="Segoe UI, Inter, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#64748b" />
+    </marker>
+    <style>
+      .box { fill: #1e242d; stroke: #38bdf8; stroke-width: 2; rx: 12; }
+      .box2 { fill: #1e242d; stroke: #ffb020; stroke-width: 2; }
+      .title { fill: #e6e9ef; font-size: 16px; font-weight: 700; }
+      .sub { fill: #9aa4b2; font-size: 12px; }
+      .lbl { fill: #cbd5e1; font-size: 12px; }
+      .edge { stroke: #64748b; stroke-width: 2; fill: none; }
+      .edgeText { fill: #94a3b8; font-size: 11px; }
+      .zone { fill: none; stroke: #334155; stroke-width: 1.5; stroke-dasharray: 6 5; rx: 14; }
+      .zoneText { fill: #64748b; font-size: 11px; font-weight: 600; letter-spacing: 1px; }
+    </style>
+  </defs>
+
+  <rect width="980" height="560" fill="#0e1116" />
+  <text x="30" y="40" class="title" font-size="20">Office Energy Monitor — System Architecture</text>
+  <text x="30" y="62" class="sub">One shared backend feeds both the web dashboard and the Discord bot. Single source of truth for device state.</text>
+
+  <!-- Zone: simulated device layer -->
+  <rect x="24" y="90" width="230" height="200" class="zone" />
+  <text x="40" y="112" class="zoneText">SIMULATED DEVICE LAYER</text>
+
+  <rect x="40" y="128" width="198" height="120" rx="12" fill="#171b22" stroke="#f59e0b" stroke-width="2" />
+  <text x="60" y="152" class="title">15 Devices</text>
+  <text x="60" y="174" class="sub">3 rooms × (2 fans + 3 lights)</text>
+  <text x="60" y="196" class="lbl">status · power(W) · room</text>
+  <text x="60" y="214" class="lbl">onSince · lastChanged</text>
+  <text x="60" y="236" class="sub">controllable virtual clock</text>
+
+  <!-- Backend -->
+  <rect x="340" y="120" width="250" height="200" rx="12" fill="#171b22" stroke="#38bdf8" stroke-width="2.5" />
+  <text x="360" y="148" class="title">Backend (Node.js)</text>
+  <text x="360" y="172" class="sub">simulation.js — state + alerts</text>
+  <text x="360" y="194" class="sub">tick loop · energy integrator</text>
+  <line x1="360" y1="208" x2="570" y2="208" stroke="#2a313c" />
+  <text x="360" y="232" class="lbl">REST API  (Express)</text>
+  <text x="360" y="252" class="sub">/api/state · /rooms · /usage</text>
+  <text x="360" y="272" class="lbl">Realtime  (Socket.IO)</text>
+  <text x="360" y="292" class="sub">pushes state on every change</text>
+
+  <!-- Web dashboard -->
+  <rect x="700" y="90" width="250" height="150" rx="12" fill="#171b22" stroke="#34d399" stroke-width="2" />
+  <text x="720" y="118" class="title">Web Dashboard</text>
+  <text x="720" y="142" class="sub">live device panel (no refresh)</text>
+  <text x="720" y="164" class="sub">power meter + per-room</text>
+  <text x="720" y="186" class="sub">active alerts panel</text>
+  <text x="720" y="208" class="sub">office top-view (glow/spin)</text>
+  <text x="720" y="230" class="sub">🎛️ playground: switch + set-time</text>
+
+  <!-- Discord bot -->
+  <rect x="700" y="300" width="250" height="150" rx="12" fill="#171b22" stroke="#818cf8" stroke-width="2" />
+  <text x="720" y="328" class="title">Discord Bot</text>
+  <text x="720" y="352" class="sub">!status · !room · !usage · !alerts</text>
+  <text x="720" y="374" class="sub">real answers from live data</text>
+  <text x="720" y="396" class="sub">LLM-phrased (Claude, optional)</text>
+  <text x="720" y="418" class="sub">proactive after-hours alerts →</text>
+  <text x="720" y="438" class="sub">designated channel</text>
+
+  <!-- User -->
+  <rect x="700" y="490" width="250" height="46" rx="12" fill="#1e242d" stroke="#9aa4b2" stroke-width="1.5" />
+  <text x="720" y="519" class="lbl">👤 The boss (browser + Discord)</text>
+
+  <!-- Edges -->
+  <path d="M238 188 L340 200" class="edge" marker-end="url(#arrow)" />
+  <text x="248" y="182" class="edgeText">state</text>
+
+  <path d="M590 160 L700 150" class="edge" marker-end="url(#arrow)" />
+  <text x="600" y="138" class="edgeText">WebSocket push</text>
+  <path d="M700 175 L590 185" class="edge" marker-end="url(#arrow)" />
+  <text x="600" y="205" class="edgeText">REST (playground)</text>
+
+  <path d="M590 270 L700 340" class="edge" marker-end="url(#arrow)" />
+  <text x="600" y="322" class="edgeText">reads same state</text>
+
+  <path d="M825 240 L825 300" class="edge" marker-end="url(#arrow)" />
+  <text x="835" y="275" class="edgeText">same data</text>
+
+  <path d="M825 450 L825 490" class="edge" marker-end="url(#arrow)" />
+  <path d="M825 240 L825 300" class="edge" />
+
+  <text x="30" y="545" class="sub">Data flow: device state change → backend recomputes power &amp; alerts → pushed live to the dashboard AND available to the bot on demand / proactively.</text>
+</svg>
