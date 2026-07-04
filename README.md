@@ -22,7 +22,7 @@ Repo: <https://github.com/CoolDudeMaruf/Techathon2026-ShadowMonarch>
 
 
 
-# Part 1 · Run it yourself (step by step)
+# Part 1: Setup Instructions
 
 You only need **Node.js 18+**. The dashboard and API run with **zero
 configuration** — the Discord bot and LLM phrasing are optional add-ons.
@@ -139,14 +139,8 @@ reads from it.
 
 ![High-level system architecture](img/architecture.png)
 
-> Editable source: **[Excalidraw board](https://excalidraw.com/#json=B4qrCWff0wl3qTcqR-rfL,uBgLJQbULb5L3jZun-qX8g)**
-> · a hand-built SVG copy also lives at `docs/system-diagram.svg`.
 
-```
-[Simulated Device Layer]  →  [Shared Node.js Backend]  →  [ Web Dashboard ]
-   (server/simulation.js)        (Express + Socket.IO)   →  [ Discord Bot  ]
-                                                          →  [ Firebase RTDB ]
-```
+
 
 The simulation owns the live device state, the virtual clock, power totals, energy
 usage, and alerts. It emits an `update` event on every change; the backend pushes a
