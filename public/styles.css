@@ -127,111 +127,96 @@ body {
   font-size: 12px;
 }
 
-/* ---- office layout ---- */
+/* ---- office layout: real floor-plan image with live device markers ---- */
 .office {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-.room {
-  background: var(--panel-2);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1247 / 747; /* matches roomlayout.jpg */
+  background: url('roomlayout.jpg') center / cover no-repeat, var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 12px;
-  position: relative;
-  min-height: 180px;
+  overflow: hidden;
+  container-type: inline-size; /* lets markers scale with the plan (cqw units) */
 }
-.room.after-alert {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: inset 0 0 24px rgba(239, 68, 68, 0.12);
+
+/* Translucent per-room box that lights up red when that room has an alert. */
+.room-region {
+  position: absolute;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s, box-shadow 0.3s;
 }
-.room-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 10px;
+.room-region.alerting {
+  background: rgba(239, 68, 68, 0.16);
+  box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.6), inset 0 0 26px rgba(239, 68, 68, 0.22);
+  animation: alertPulse 1.6s ease-in-out infinite;
 }
-.room-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px 6px;
-  place-items: center;
+@keyframes alertPulse {
+  50% {
+    background: rgba(239, 68, 68, 0.26);
+  }
 }
-.device {
+
+/* A live marker pinned over each fan/light drawn on the plan. */
+.asset {
+  position: absolute;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  padding: 6px 2px;
-  border-radius: 8px;
-  transition: background 0.15s;
-  width: 100%;
+  z-index: 3;
 }
-.device:hover {
-  background: rgba(255, 255, 255, 0.04);
+/* soft dark disc so the icon reads against the photo */
+.asset::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8cqw;
+  height: 8cqw;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(12, 14, 18, 0.55), rgba(12, 14, 18, 0) 70%);
+  z-index: -1;
 }
-.device .icon {
-  width: 30px;
-  height: 30px;
-  color: #4b5563;
-  transition: color 0.2s;
+.asset .icon {
+  width: 5cqw;
+  height: 5cqw;
+  color: #cbd5e1;
+  opacity: 0.5;
+  transition: color 0.2s, opacity 0.2s, filter 0.2s;
 }
-.device .label {
-  font-size: 10px;
-  color: var(--muted);
+.asset .label {
+  margin-top: 1cqw;
+  font-size: 2.1cqw;
+  font-weight: 600;
+  color: #e5e7eb;
+  opacity: 0;
+  transition: opacity 0.15s;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
 }
-/* ON states */
-.device.light.on .icon {
+.asset:hover .label {
+  opacity: 1;
+}
+/* ON states — the plan comes alive */
+.asset.light.on .icon {
   color: var(--on);
-  filter: drop-shadow(0 0 8px var(--on));
+  opacity: 1;
+  filter: drop-shadow(0 0 6px var(--on)) drop-shadow(0 0 14px var(--on));
 }
-.device.fan.on .icon {
+.asset.fan.on .icon {
   color: var(--accent-2);
+  opacity: 1;
+  transform-origin: center;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ---- top-view floor plan: absolutely-positioned fans, lights & desks ---- */
-.room-floor {
-  position: relative;
-  height: 210px;
-  margin-top: 6px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  overflow: hidden;
-  /* faint tile grid so it reads as a floor seen from above */
-  background: repeating-linear-gradient(0deg, transparent 0 23px, rgba(255, 255, 255, 0.03) 23px 24px),
-    repeating-linear-gradient(90deg, transparent 0 23px, rgba(255, 255, 255, 0.03) 23px 24px),
-    var(--panel);
-}
-.desk {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: 46px;
-  height: 26px;
-  border-radius: 4px;
-  background: #2b2f37;
-  border: 1px solid #3a4150;
-  z-index: 1;
-}
-.asset {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: auto;
-  padding: 3px;
-  z-index: 2;
-}
-.asset .label {
-  font-size: 9px;
-}
-/* the spinning fan keeps its own centring while animating */
-.device.fan.on.asset .icon {
-  transform-origin: center;
 }
 
 /* ---- power ---- */
@@ -364,8 +349,7 @@ body {
   .span-2 {
     grid-column: span 1;
   }
-  .devices,
-  .office {
+  .devices {
     grid-template-columns: 1fr;
   }
 }

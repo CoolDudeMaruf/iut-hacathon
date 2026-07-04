@@ -12,6 +12,7 @@ import { Server } from 'socket.io';
 import { simulation } from './simulation.js';
 import { createApiRouter } from './api.js';
 import { startBot } from './bot.js';
+import { startFirebaseSync } from './firebase.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -29,6 +30,9 @@ io.on('connection', (socket) => socket.emit('state', simulation.getState()));
 simulation.on('update', () => io.emit('state', simulation.getState()));
 
 simulation.start();
+
+// Mirror live device state up to the Firebase Realtime Database.
+startFirebaseSync(simulation);
 
 startBot(simulation, {
   token: process.env.DISCORD_TOKEN,

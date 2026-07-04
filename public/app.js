@@ -51,30 +51,55 @@ function renderClock(t) {
   badge.classList.toggle('after', !t.officeHours);
 }
 
-// Fixed floor-plan positions (percent of the room box) so fans and lights sit
-// where they'd hang in the real top-view office: lights in the corners + bottom,
-// two ceiling fans over the desks in the middle.
-const ROOM_POS = {
-  light: [
-    { top: '15%', left: '16%' }, // Light 1 — top-left
-    { top: '15%', left: '84%' }, // Light 2 — top-right
-    { top: '86%', left: '50%' }, // Light 3 — bottom-centre
-  ],
-  fan: [
-    { top: '46%', left: '31%' }, // Fan 1 — centre-left
-    { top: '46%', left: '69%' }, // Fan 2 — centre-right
-  ],
+// Device positions as a percent of the WHOLE floor-plan image
+// (public/roomlayout.jpg, 1247×747), measured so each marker sits exactly over
+// the fan/light drawn on the plan. Index 0/1 = Fan 1/2, index 0/1/2 = Light 1/2/3.
+const LAYOUT = {
+  drawing: {
+    fan: [
+      { top: '14.1%', left: '17.6%' }, // Fan 1 — top
+      { top: '54.9%', left: '18.4%' }, // Fan 2 — bottom
+    ],
+    light: [
+      { top: '11.8%', left: '10.0%' }, // Light 1 — top-left
+      { top: '12.0%', left: '28.1%' }, // Light 2 — top-right
+      { top: '69.3%', left: '18.6%' }, // Light 3 — bottom
+    ],
+  },
+  work1: {
+    fan: [
+      { top: '14.1%', left: '50.7%' },
+      { top: '50.6%', left: '50.7%' },
+    ],
+    light: [
+      { top: '12.0%', left: '41.9%' },
+      { top: '12.0%', left: '59.3%' },
+      { top: '68.9%', left: '50.5%' },
+    ],
+  },
+  work2: {
+    fan: [
+      { top: '13.8%', left: '82.6%' },
+      { top: '50.6%', left: '82.6%' },
+    ],
+    light: [
+      { top: '12.0%', left: '74.2%' },
+      { top: '12.0%', left: '91.4%' },
+      { top: '68.9%', left: '83.0%' },
+    ],
+  },
 };
-const DESK_POS = [
-  { top: '62%', left: '26%' },
-  { top: '62%', left: '74%' },
-];
 
-function assetEl(d) {
+// Room interior boxes (percent of the image) — used to tint a room red on alert.
+const ROOM_REGION = {
+  drawing: { left: '1%', top: '2%', width: '33%', height: '77%' },
+  work1: { left: '34.7%', top: '2%', width: '31.6%', height: '77%' },
+  work2: { left: '67.3%', top: '2%', width: '31.4%', height: '77%' },
+};
+
+function assetEl(d, pos) {
   const svg = d.type === 'fan' ? FAN_SVG : LIGHT_SVG;
-  const idx = Math.max(0, (parseInt(d.name.replace(/\D/g, ''), 10) || 1) - 1);
-  const pos = (ROOM_POS[d.type] && ROOM_POS[d.type][idx]) || { top: '50%', left: '50%' };
-  return `<div class="device asset ${d.type} ${d.status}" data-toggle="${d.id}"
+  return `<div class="asset ${d.type} ${d.status}"
       style="top:${pos.top};left:${pos.left}"
       title="${d.room} · ${d.name} · ${d.status.toUpperCase()}">
       ${svg}<span class="label">${d.name}</span>
@@ -83,18 +108,24 @@ function assetEl(d) {
 
 function renderLayout(state) {
   const alertRooms = new Set(state.alerts.map((a) => a.room));
-  const desks = DESK_POS.map((p) => `<div class="desk" style="top:${p.top};left:${p.left}"></div>`).join('');
-  const html = state.rooms
+  const regions = state.rooms
     .map((room) => {
-      const devs = state.devices.filter((d) => d.roomId === room.id);
-      const alerting = alertRooms.has(room.name) ? 'after-alert' : '';
-      return `<div class="room ${alerting}">
-          <div class="room-name">${room.name}</div>
-          <div class="room-floor">${desks}${devs.map(assetEl).join('')}</div>
-        </div>`;
+      const r = ROOM_REGION[room.id];
+      if (!r) return '';
+      const alerting = alertRooms.has(room.name) ? 'alerting' : '';
+      return `<div class="room-region ${alerting}"
+          style="left:${r.left};top:${r.top};width:${r.width};height:${r.height}"></div>`;
     })
     .join('');
-  $('office').innerHTML = html;
+  const assets = state.devices
+    .map((d) => {
+      const arr = (LAYOUT[d.roomId] && LAYOUT[d.roomId][d.type]) || [];
+      const idx = Math.max(0, (parseInt(d.name.replace(/\D/g, ''), 10) || 1) - 1);
+      const pos = arr[idx] || { top: '50%', left: '50%' };
+      return assetEl(d, pos);
+    })
+    .join('');
+  $('office').innerHTML = regions + assets;
 }
 
 function renderPower(state) {
