@@ -1,49 +1,49 @@
 # System Architecture
 
-![System diagram](system-diagram.svg)
+![High-level system diagram](system-diagram.svg)
 
-> The diagram above is a hand-built SVG (open `docs/system-diagram.svg` in any
-> browser). No Mermaid is used, per the brief.
+> The diagram above is a hand-built SVG. Open `docs/system-diagram.svg` in any
+> browser to view or export it.
 
-## The one rule: a single source of truth
+## The One Rule: A Single Source Of Truth
 
 ```
-[Simulated Device Layer] → [Backend API] → [ Web UI ] && [ Discord Bot ]
+[Simulated Device Layer] -> [Shared Node.js Backend] -> [Web Dashboard]
+                                                   -> [Discord Bot]
+                                                   -> [Firebase RTDB mirror]
 ```
 
-Everything runs in **one Node.js process**. `server/simulation.js` holds the
-only copy of device state. The web dashboard and the Discord bot are two
-_readers_ of that same object, so they can never disagree.
+Everything starts from `server/simulation.js`. It owns the live device state,
+virtual clock, power totals, energy usage, and alerts. The web dashboard and the
+Discord bot read from that same module, so the two interfaces reflect the same
+data instead of maintaining separate copies.
 
 ## Components
 
 | Layer | File | Responsibility |
 |-------|------|----------------|
-| Simulated devices | `server/simulation.js` | 15 devices, a controllable virtual clock, a tick loop that drifts device states, power totals, energy integration, and alert evaluation. Emits `update` / `newAlert`. |
-| Backend REST API | `server/api.js` | Read endpoints (`/state`, `/rooms/:id`, `/usage`, `/alerts`). |
-| Realtime transport | `server/index.js` (Socket.IO) | On every `update`, pushes a fresh snapshot to all dashboards — no page refresh. |
-| Web dashboard | `public/` | Renders device panel, power meter, alerts, and an animated top-view office layout. |
-| Discord bot | `server/bot.js` | `!status`, `!room`, `!usage`, `!alerts`, `!help`; proactive alert posts. Reads the same `simulation` object. |
-| Conversation | `server/llm.js` | Optional Claude call to phrase bot replies like a colleague. Falls back to built-in templates when no API key is present. |
+| Simulated devices | `server/simulation.js` | Models 15 devices across 3 rooms, advances the virtual clock, updates state, computes watts/kWh, and raises alerts. Emits `update` and `newAlert`. |
+| Local persistence | `data/state.json` | Stores the latest simulated device state so it survives restarts. |
+| Backend REST API | `server/api.js` | Exposes read endpoints for full state, room summaries, usage, and alerts. |
+| Realtime transport | `server/index.js` | Serves the dashboard and broadcasts fresh snapshots through Socket.IO whenever simulation state changes. |
+| Web dashboard | `public/` | Renders room layout, device status, power usage, and active alerts in the browser. |
+| Discord bot | `server/bot.js` | Handles `!status`, `!room`, `!usage`, `!alerts`, and posts proactive alert messages when configured. |
+| Optional LLM phrasing | `server/llm.js` | Uses Gemini or Groq for conversational bot replies; falls back to deterministic templates with no API key. |
+| Optional cloud mirror | `server/firebase.js` | Mirrors current device status to Firebase Realtime Database for external consumers. |
 
-## Data flow (device → both interfaces)
+## Data Flow
 
-1. A device state changes from the **simulator's automatic tick loop** (every 5s
-   for device states, every 5s for the simulated clock).
-2. `simulation` updates the device, recomputes **per-room power**, integrates
-   **today's kWh**, and re-evaluates **alerts** (after-hours + room-all-on-2h).
-3. It emits `update` → Socket.IO broadcasts the new snapshot → **every dashboard
-   repaints instantly**.
-4. Independently, the **Discord bot** answers commands by reading the exact same
-   `simulation.getState()` — so a `!status` reply always matches what the
-   dashboard shows.
-5. When a **new alert** is raised, `simulation` emits `newAlert`; the bot posts a
-   proactive heads-up to the designated channel (bonus feature).
+1. The simulator changes device state and advances the clock.
+2. `simulation.js` recomputes room power, daily kWh, and active alerts.
+3. `server/index.js` pushes the latest snapshot to connected dashboards through Socket.IO.
+4. The browser can also fetch `/api/state`, `/api/rooms/:room`, `/api/usage`, and `/api/alerts`.
+5. The Discord bot answers commands from `simulation.getState()` and `getRoomSummary()`.
+6. New alerts emit `newAlert`; the bot can post them to the configured Discord channel.
+7. Firebase sync optionally mirrors device statuses to the Realtime Database.
 
-## Why one process
+## Why This Shape
 
-The brief requires the dashboard and bot to "reflect the same live data — they
-share one backend." Keeping the simulator, API, WebSocket server, and bot in a
-single process makes that guarantee structural: there is literally one
-in-memory object. Swapping the in-memory store for Redis/Postgres later would
-not change any interface — they all go through `simulation`.
+The hackathon brief needs the dashboard and bot to reflect the same live data.
+Keeping the simulator, API, realtime transport, Firebase sync, and bot in one
+Node.js process makes that guarantee simple: all consumers pass through the same
+simulation object.

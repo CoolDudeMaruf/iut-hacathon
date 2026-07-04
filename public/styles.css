@@ -131,8 +131,8 @@ body {
 .office {
   position: relative;
   width: 100%;
-  aspect-ratio: 1247 / 747; /* matches roomlayout.jpg */
-  background: url('roomlayout.jpg') center / cover no-repeat, var(--panel);
+  aspect-ratio: 1247 / 747; /* matches roomlayout.png */
+  background: url('roomlayout.png') center / cover no-repeat, var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;

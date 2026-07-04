@@ -32,10 +32,10 @@ const DEVICE_ON_ALERT_HOURS = 2; // a single device ON for >2h -> alert
 
 const DEVICE_TICK_MS = 3000; // device states change every 3 seconds
 const FAST_CLOCK_TICK_MS = 1000; // smooth clock ticks every 1 second
-const TIME_TICK_MS = 30000; // the simulated clock randomizes every 30 seconds
+const TIME_TICK_MS = 15000; // the simulated clock randomizes every 15 seconds
 
 // The random jump every 30s
-const TIME_STEP_MIN_MIN = 30; 
+const TIME_STEP_MIN_MIN = 30;
 const TIME_STEP_MAX_MIN = 120;
 // Don't auto-switch-off a device that's clearly been left running: once it has
 // been ON this long, let it ride past 2h so its per-device alert can fire.
@@ -154,10 +154,10 @@ class Simulation extends EventEmitter {
     try {
       const saved = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
       if (!Array.isArray(saved?.devices)) return;
-      
+
       if (saved.simTime) this.simTime = Date.parse(saved.simTime);
       const now = this.simTime;
-      
+
       const byId = new Map(saved.devices.map((d) => [d.id, d]));
       for (const d of this.devices) {
         const s = byId.get(d.id);
@@ -167,7 +167,7 @@ class Simulation extends EventEmitter {
         d.onSince = s.onSince ? Date.parse(s.onSince) : (d.status === 'on' ? now : null);
       }
       if (typeof saved.energyWhToday === 'number') this.energyWhToday = saved.energyWhToday;
-      
+
       if (saved.alertFirstSeen) {
         for (const [k, v] of Object.entries(saved.alertFirstSeen)) {
           this.alertFirstSeen.set(k, Date.parse(v));
@@ -222,17 +222,17 @@ class Simulation extends EventEmitter {
   _deviceTick() {
     if (this.paused) return;
     const office = isOfficeHours(this.simTime);
-    
+
     // Evaluate every device, but only change state 20% of the time per tick
     // so it doesn't look like a crazy disco party on the dashboard.
     for (const d of this.devices) {
       if (Math.random() > 0.2) continue; // 80% chance to just stay as-is this tick
-      
+
       // During office hours people switch things on; after hours they trend off
       const target = office ? (Math.random() < 0.65 ? 'on' : 'off') : Math.random() < 0.7 ? 'off' : 'on';
       this._applyStatus(d, target);
     }
-    
+
     this.recomputeAlerts();
     this.emit('update');
   }

@@ -52,7 +52,7 @@ function renderClock(t) {
 }
 
 // Device positions as a percent of the WHOLE floor-plan image
-// (public/roomlayout.jpg, 1247×747), measured so each marker sits exactly over
+// (public/roomlayout.png, 1247×747), measured so each marker sits exactly over
 // the fan/light drawn on the plan. Index 0/1 = Fan 1/2, index 0/1/2 = Light 1/2/3.
 const LAYOUT = {
   drawing: {
