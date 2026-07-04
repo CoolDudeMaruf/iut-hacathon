@@ -155,6 +155,14 @@ deeper walkthrough.
 
 # Part 5 · Hardware / electrical schematic
 
+> [!TIP]
+> **🔗 Open the interactive Wokwi simulation here:**
+> **[https://wokwi.com/projects/468605430615291905](https://wokwi.com/projects/468605430615291905)**
+>
+> Click the link above to open the circuit in Wokwi, then press the **▶ Play** button
+> (green triangle, top-left of the simulator) to start the simulation and watch the
+> ESP32 read Firebase device states and toggle the relays in real time.
+
 This is a **concept/simulation** — no real hardware is needed to run the project.
 The circuit was built in **Wokwi** to show how a real office would be wired and
 sensed. A representative circuit for **one room** (2 fans + 3 lights = 5 devices)
