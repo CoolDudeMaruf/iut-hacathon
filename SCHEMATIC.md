@@ -2,207 +2,196 @@
 
 > Deliverable #2: "A circuit design in Wokwi or Tinkercad showing how these devices would be wired and sensed in real life."
 >
-> This document gives you **pin-mapping tables, connection lists, and electrical reasoning** so you can build the schematic yourself in the simulator. It is a **concept/simulation only** — no real hardware, and (per the brief) you only need a **representative circuit for one room** (5 devices: 3 lights + 2 fans). Build it once; note "repeat ×5 per room, ×3 rooms."
+> This document gives the **pin-mapping tables, connection lists, and electrical reasoning** for the circuit built in **Wokwi**. It is a **concept/simulation only** — no real hardware — and (per the brief) only a **representative circuit for one room** (5 devices: 3 lights + 2 fans) is needed. Build it once; note "repeat ×5 per room, ×3 rooms."
+
+![Wokwi ESP32 + relay circuit](img/wokwi.jpg)
 
 ---
 
-## 1. Assumptions
+## 1. What the circuit does
 
-- The system is **monitoring-only** — we *sense* device state, we don't switch the loads. (The dashboard/bot only *report*; they don't control.)
-- Loads in real life are **230 V AC** mains devices: lights ≈ 15 W each, fans ≈ 60 W each (matching the software simulator).
-- The microcontroller lives on a **low-voltage, isolated logic side** — it must never share a wire with mains.
-- Two sensing layers:
-  - **Core (required):** digital **ON/OFF state** per device.
-  - **Bonus (optional):** analog **current draw** per device, so power can be measured instead of estimated.
+An **ESP32** reads each appliance's ON/OFF status from **Firebase** and switches
+it through a **5-channel relay module**. An **ACS712 current sensor** (simulated
+by a potentiometer in Wokwi) measures the room's load current. So the schematic
+shows the full real-world path **Firebase → ESP32 → relay → appliance**, plus
+**appliance → ACS712 → ESP32** for metering.
 
-## 2. Recommended platform: ESP32 in Wokwi
+- Loads in real life are **230 V AC** mains devices: lights ≈ 15 W each, fans
+  ≈ 60 W each (matching the software simulator).
+- The microcontroller lives on a **low-voltage, isolated logic side** — the relay
+  board's optocouplers are the only bridge to mains. It must never share a wire
+  with mains directly.
 
-| | **Wokwi + ESP32** (recommended) | Tinkercad + Arduino Uno (fallback) |
+## 2. Demo vs. real life (data direction)
+
+| | Real installation | Hackathon demo (this build) |
 |---|---|---|
-| Wi-Fi to talk to the shared backend | ✅ built-in, Wokwi simulates it | ❌ no networking |
-| ADC channels | Plenty (ADC1) | 6 (A0–A5) — still enough for 5 |
-| ADC range | 0–3.3 V (needs a divider for a 5 V sensor) | 0–5 V (sensor connects directly) |
-| Good for this project because… | ESP32 can push readings to the backend, matching the "[Device]→[Backend]→[Web]&&[Bot]" architecture | Simplest to wire, but the circuit is illustrative only |
+| Who produces state | **ACS712 + ESP32** sense real current and **write** to Firebase | **Backend** (`server/simulation.js`) generates dynamic data and **writes** to Firebase |
+| Who consumes state | Backend / dashboard **read** from Firebase | **ESP32 reads** from Firebase and drives the relays |
+| ACS712 | Real hall-effect current sensor | **Simulated with a potentiometer** (Wokwi can't push real AC through it) |
 
-**Recommendation:** use **ESP32 in Wokwi**. It lets your schematic show the *full* data path (sensor → MCU → Wi-Fi → backend), which is exactly what the system-diagram deliverable asks for. Tinkercad/Uno is a valid fallback if you prefer its part library — the pin map for it is in §6.
+The last hop is reversed only because Wokwi cannot simulate real current flow.
+Everything upstream of Firebase is identical.
 
-> **Note on the software demo:** your live demo data comes from the backend simulator (`server/simulation.js`). This circuit is the *"how it would be sensed in reality"* deliverable. Optionally, the ESP32 sketch in §8 can publish real sensed values to the backend to demonstrate the end-to-end path.
+## 3. Why ESP32 in Wokwi
 
----
+| | **Wokwi + ESP32** (used here) | Tinkercad + Arduino Uno (fallback) |
+|---|---|---|
+| Wi-Fi to reach Firebase | ✅ built-in, Wokwi simulates it | ❌ no networking |
+| GPIO for 5 relays + ADC | ✅ plenty | ✅ enough (D2–D6 + A0) |
+| ADC range | 0–3.3 V (scale a 5 V sensor) | 0–5 V (sensor connects directly) |
 
-## 3. How each device is sensed (electrical reasoning)
-
-Each of the 5 devices gets **one identical sensing channel**. There are two independent sub-circuits per channel:
-
-### 3a. ON/OFF state — opto-isolated AC detector (H11AA1)
-- The **H11AA1** has two anti-parallel LEDs on its input (so it works on AC) and a phototransistor output — it gives **galvanic isolation (~7.5 kV)** between mains and the MCU.
-- Wire the opto **input across the load terminals**, through a series resistor. When the device is **ON**, mains voltage appears across the load → the opto's internal LED conducts → the output phototransistor pulses.
-- **Series resistor sizing:** target ~1–2 mA through the LED.
-  - 230 V mains → **220 kΩ, ≥1 W** (or 2×110 kΩ in series for voltage rating). Power ≈ 230²/220k ≈ 0.24 W.
-  - 120 V mains → ~100 kΩ.
-- The output pulses at 2× line frequency (100/120 Hz). Add an **RC low-pass (10 kΩ + 1 µF)** on the output so the MCU reads a **steady level** instead of flicker.
-- Output is **active-low**: phototransistor pulls the pin toward GND when the device is ON. Use the MCU's **internal pull-up** and invert in firmware (`ON = digitalRead()==LOW`).
-
-### 3b. Current draw — ACS712 Hall sensor (optional/bonus)
-- The **ACS712** sits **in series with the load's live conductor**; its Hall element also provides isolation. Output = analog voltage centered at **VCC/2 (2.5 V at 5 V supply)**, ± sensitivity.
-- Sensitivity by part: **-05B = 185 mV/A**, -20A = 100 mV/A, -30A = 66 mV/A.
-- **Important reality check:** office loads draw *tiny* currents — a 60 W fan ≈ 0.26 A, a 15 W light ≈ 0.065 A at 230 V. That's near the ACS712's noise floor. So for a real build you'd either:
-  1. use the **-05B (most sensitive)** part, **or**
-  2. use a **current transformer (SCT-013)** with a tuned burden resistor for low current, **or**
-  3. skip per-device current and compute **power = state × rated wattage** (perfectly acceptable, and what the backend already does).
-- **ESP32 3.3 V ADC:** the 2.5 V bias + swing can exceed 3.3 V, so add a **voltage divider (e.g., 10 kΩ / 20 kΩ ⇒ ×0.667)** on the OUT line and multiply back in firmware. On a 5 V Arduino Uno this divider is **not needed**.
-- For AC, sample OUT over a full mains cycle and compute **RMS**; for the DC-motor stand-in in the simulator it's a steady offset.
-
-### 3c. Isolation & power (the safety-critical part)
-- **Two power domains:** mains (loads) and an **isolated 5 V DC supply** (e.g., an HLK-PM01 in a real build) for the MCU + sensors.
-- The opto and the ACS712 are the **only bridges** across the isolation barrier — and both are isolating parts. **Never** connect mains neutral to MCU ground.
+**ESP32 in Wokwi** lets the schematic show the full data path (Firebase → MCU →
+relay), which is exactly what the system-diagram deliverable asks for.
 
 ---
 
 ## 4. Bill of Materials — one room (5 channels)
 
-**Real-world (what your schematic depicts):**
+**Real-world (what the schematic depicts):**
 
 | Qty | Part | Purpose |
 |---|---|---|
-| 1 | ESP32 DevKit v1 | MCU, reads pins, Wi-Fi to backend |
-| 5 | H11AA1 AC opto-isolator | ON/OFF state sensing (isolated) |
-| 5 | 220 kΩ 1 W resistor | opto input series resistor (mains side) |
-| 5 | 1 µF capacitor + 10 kΩ | RC smoothing on opto output |
-| 5 | ACS712-05B module *(optional)* | current sensing (isolated) |
-| 10 | 10 kΩ / 20 kΩ resistors *(optional)* | ADC divider for ESP32 3.3 V |
-| 5 | AC loads: 3× 15 W lamp, 2× 60 W fan | the monitored devices |
-| 1 | Isolated 5 V DC supply | powers MCU + sensors |
+| 1 | ESP32 DevKit v1 | MCU, Wi-Fi to Firebase, drives relays, reads ADC |
+| 1 | 5-channel relay module (opto-isolated, 5 V) | switch the 5 devices |
+| 1 | ACS712-20A current sensor module | current sensing (isolated) |
+| 5 | AC loads: 3× 15 W lamp, 2× 60 W fan | the controlled devices |
+| 1 | Isolated 5 V DC supply | powers MCU + relay + sensor |
 
-**Simulator stand-ins (Wokwi/Tinkercad can't do 230 V AC):**
+**Simulator stand-ins (Wokwi can't do 230 V AC):**
 
 | Real part | Simulator substitute |
 |---|---|
-| 15 W light | **LED + 220 Ω** resistor |
-| 60 W fan | **DC motor** (via transistor/relay, or a supply) |
-| Manual on/off of a load | **slide switch** (also feeds the state pin) |
-| H11AA1 state signal | the slide-switch line into the state GPIO |
-| ACS712 analog current | **potentiometer** (wiper → ADC pin) — slide it to emulate varying current |
+| 15 W light | **LED + 220 Ω** resistor (driven by the relay/GPIO) |
+| 60 W fan | **DC motor** (via the relay, or transistor + flyback diode) |
+| ACS712 analog current | **potentiometer** (wiper → GPIO34) — slide it to emulate current |
 
 ---
 
-## 5. Pin map — ESP32 (Wokwi)
+## 5. ACS712 current sensor connection
 
-State pins use general GPIOs with internal pull-ups. Current pins use **ADC1 only** (ADC2 is unavailable while Wi-Fi is on). Pins 34/35/36/39 are input-only — perfect for analog.
+| ACS712 Pin | Connected To       | ESP32 Pin | Description                                  |
+| ---------- | ------------------ | --------- | -------------------------------------------- |
+| VCC        | ESP32 5V (VIN)     | VIN       | Powers the ACS712 module                     |
+| GND        | ESP32 GND          | GND       | Common ground                                |
+| OUT        | ESP32 Analog Input | GPIO34    | Sends analog current measurement to ESP32    |
+| IP+        | AC Load Input      | —         | Current input terminal (simulated in Wokwi)  |
+| IP−        | AC Load Output     | —         | Current output terminal (simulated in Wokwi) |
 
-| Device | State (digital in) | Current (ADC1 in) |
-|---|---|---|
-| Light 1 | GPIO 13 | GPIO 36 (ADC1_CH0 / VP) |
-| Light 2 | GPIO 14 | GPIO 39 (ADC1_CH3 / VN) |
-| Light 3 | GPIO 16 | GPIO 34 (ADC1_CH6) |
-| Fan 1  | GPIO 17 | GPIO 35 (ADC1_CH7) |
-| Fan 2  | GPIO 18 | GPIO 32 (ADC1_CH4) |
+> **Note:** In Wokwi the ACS712 is simulated using a potentiometer because actual
+> current flow through the sensor cannot be simulated. The potentiometer's output
+> voltage emulates the ACS712 analog output. GPIO34 is on **ADC1** (ADC2 is
+> unavailable while Wi-Fi is on) and is input-only — ideal for analog.
 
-Power rails: `3V3` → opto pull-ups / pots; `5V (VIN)` → ACS712 modules; `GND` common to all logic-side parts.
+## 6. ESP32 device control mapping (Firebase → relay)
 
-## 6. Pin map — Arduino Uno (Tinkercad fallback)
+Drawing Room shown; repeat the block per room. Relay inputs are typically
+active-LOW.
 
-Uno's 5 V ADC means the ACS712 connects **directly** (no divider).
+| Firebase Path                | ESP32 GPIO | Relay   | Connected Appliance |
+| ---------------------------- | ---------- | ------- | ------------------- |
+| `Drawing Room/fan1/status`   | GPIO19     | Relay 1 | Fan 1               |
+| `Drawing Room/fan2/status`   | GPIO18     | Relay 2 | Fan 2               |
+| `Drawing Room/light1/status` | GPIO5      | Relay 3 | Light 1             |
+| `Drawing Room/light2/status` | GPIO17     | Relay 4 | Light 2             |
+| `Drawing Room/light3/status` | GPIO16     | Relay 5 | Light 3             |
 
-| Device | State (digital) | Current (analog) |
-|---|---|---|
-| Light 1 | D2 | A0 |
-| Light 2 | D3 | A1 |
-| Light 3 | D4 | A2 |
-| Fan 1  | D5 | A3 |
-| Fan 2  | D6 | A4 |
+## 7. System operation
+
+| Component                  | Function                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| Firebase Realtime Database | Stores the ON/OFF status of each appliance.                                     |
+| ESP32                      | Reads appliance status from Firebase and controls the corresponding relay.      |
+| Relay Module               | Switches the connected appliance ON or OFF.                                      |
+| ACS712 Current Sensor      | Measures the load current of the connected appliance (simulated in Wokwi).      |
+| Frontend Dashboard         | Displays appliance status and reflects device state driven through Firebase.    |
 
 ---
 
-## 7. Connection list (net list)
+## 8. Connection list (net list)
 
-### 7a. Real-world — one representative channel (repeat ×5)
+### 8a. Real-world — one representative channel (repeat ×5 for control)
 ```
-Load power:
-  MAINS_L ── [wall switch] ── ACS712 IP+          (current in series)
-  ACS712 IP- ── LOAD terminal A
-  LOAD terminal B ── MAINS_N
+Control (one relay per device):
+  ESP32 GPIO (e.g. GPIO19) ── Relay INx        (active-LOW: drive LOW to energise)
+  ESP32 5V ── Relay VCC ; ESP32 GND ── Relay GND
+  MAINS_L ── Relay COM ; Relay NO ── LOAD live ; LOAD neutral ── MAINS_N
 
-State detect (across the load):
-  LOAD terminal A ── [220kΩ 1W] ── H11AA1 pin1 (AC in)
-  LOAD terminal B ──────────────── H11AA1 pin2 (AC in)
-  H11AA1 pin4 (emitter)  ── MCU GND
-  H11AA1 pin5 (collector) ── MCU state GPIO  (internal pull-up)
-  H11AA1 pin5 ── [1µF] ── GND                 (RC smoothing, with the pull-up)
-
-Current sense (optional):
-  ACS712 VCC ── +5V (isolated)
-  ACS712 GND ── MCU GND
-  ACS712 OUT ── [10kΩ]─┬─ MCU ADC pin         (divider top)
-                        └─ [20kΩ] ── GND       (divider bottom; omit on Uno)
+Current sense (whole room, one sensor):
+  MAINS_L ── ACS712 IP+ ── IP- ── (room load bus)   (sensor in series with live)
+  ACS712 VCC ── 5V ; ACS712 GND ── GND ; ACS712 OUT ── GPIO34
 ```
 
-### 7b. Simulator (Wokwi ESP32) — one channel (repeat ×5)
+### 8b. Simulator (Wokwi ESP32) — one channel (repeat ×5)
 ```
 Light channel (LED stand-in):
-  3V3 ── slide-switch common
-  slide-switch out ─┬─ [220Ω] ── LED anode ; LED cathode ── GND   (visualizes ON)
-                    └─ state GPIO (e.g. GPIO13)                    (reads ON/OFF)
+  ESP32 GPIO (e.g. GPIO5) ── relay IN ; relay NO ── [220Ω] ── LED anode ; LED cathode ── GND
+  (LED lit ⇒ appliance ON, matching the dashboard glow)
 
-Fan channel (DC-motor stand-in): same, but drive a DC motor
-  (via an NPN transistor + flyback diode from the switched line) instead of the LED.
+Fan channel (DC-motor stand-in): same, but the relay switches a DC motor
+  (add a flyback diode) instead of the LED.
 
-Current emulation (per device):
-  potentiometer: end1 ── 3V3 , end2 ── GND , wiper ── ADC pin (e.g. GPIO36)
-  (turn the pot to fake current; tie "off" ⇒ pot at 0 in firmware if you like)
+Current emulation (per room):
+  potentiometer: end1 ── 3V3 , end2 ── GND , wiper ── GPIO34
+  (turn the pot to fake varying current)
 ```
-> Tip: instead of 5 slide switches you can let the **ESP32 firmware itself toggle the loads on a timer** — that makes the simulator produce *dynamic* data on its own, matching the brief's "data should change over time."
+> The relays are driven by the value the ESP32 reads from Firebase, which the
+> backend simulator updates over time — so the circuit produces *dynamic* behaviour
+> on its own, matching the brief's "data should change over time."
 
 ---
 
-## 8. Firmware skeleton (reads pins → watts)
+## 9. Firmware skeleton (Firebase → relay + ACS712 → watts)
 
-Teaching skeleton — the same logic works in the simulator (digitalRead from a switch, analogRead from a pot) and on real hardware (from the opto and ACS712).
+Teaching skeleton — the same logic works in the simulator (relay drives an LED /
+motor, analogRead from a pot) and on real hardware (relay drives mains, analogRead
+from the ACS712).
 
 ```cpp
-const int STATE_PINS[5]   = {13, 14, 16, 17, 18};   // opto output, active-low
-const int CURRENT_PINS[5] = {36, 39, 34, 35, 32};   // ACS712 via ADC1
-const char* NAMES[5] = {"Light 1","Light 2","Light 3","Fan 1","Fan 2"};
-const float RATED_W[5] = {15, 15, 15, 60, 60};      // fallback if not metering current
+const int RELAY_PINS[5] = {19, 18, 5, 17, 16};        // Fan1, Fan2, Light1, Light2, Light3
+const int CURRENT_PIN   = 34;                          // ACS712 OUT via ADC1
+const char* PATHS[5] = {
+  "Drawing Room/fan1/status",  "Drawing Room/fan2/status",
+  "Drawing Room/light1/status","Drawing Room/light2/status","Drawing Room/light3/status"
+};
 
 void setup() {
   Serial.begin(115200);
-  for (int i = 0; i < 5; i++) pinMode(STATE_PINS[i], INPUT_PULLUP);
-  analogReadResolution(12);                          // ESP32 ADC: 0..4095
+  for (int i = 0; i < 5; i++) { pinMode(RELAY_PINS[i], OUTPUT); digitalWrite(RELAY_PINS[i], HIGH); } // HIGH = off (active-LOW)
+  analogReadResolution(12);                            // ESP32 ADC: 0..4095
+  // connectWiFi(); beginFirebase();
 }
 
-float readAmps(int adcPin) {                         // ACS712-05B, 5V, 2:3 divider
-  const float VREF = 3.3, DIV = 1.5, SENS = 0.185, BIAS = 2.5;
-  float v = (analogRead(adcPin) / 4095.0) * VREF * DIV;
+float readAmps() {                                     // ACS712-20A, scaled into 0..3.3V
+  const float VREF = 3.3, SENS = 0.100, BIAS = 1.65;   // 100 mV/A, mid-rail bias after scaling
+  float v = (analogRead(CURRENT_PIN) / 4095.0) * VREF;
   return fabs((v - BIAS) / SENS);
 }
 
 void loop() {
   for (int i = 0; i < 5; i++) {
-    bool on = (digitalRead(STATE_PINS[i]) == LOW);   // opto is active-low
-    // Prefer measured power; fall back to rated wattage when current is negligible:
-    float watts = on ? RATED_W[i] : 0.0;             // or: readAmps(CURRENT_PINS[i]) * 230.0
-    Serial.printf("%-8s %-3s  %5.1f W\n", NAMES[i], on ? "ON" : "OFF", watts);
+    bool on = Firebase.getBool(PATHS[i]);              // read desired state from the cloud
+    digitalWrite(RELAY_PINS[i], on ? LOW : HIGH);      // active-LOW relay drive
   }
-  Serial.println("----");
-  delay(1000);
-  // Optional: package as JSON and POST to the shared backend over Wi-Fi.
+  float amps = readAmps();                             // room current (simulated by the pot)
+  Serial.printf("room current ~ %.2f A\n", amps);
+  delay(500);
 }
 ```
 
 ---
 
-## 9. Safety notes (call these out in your writeup)
+## 10. Safety notes (call these out in your writeup)
 - Mains is lethal — this is a **concept schematic**; do not build the 230 V side for real without proper training.
-- The **only** components crossing the mains↔logic boundary are the **opto-isolator and the Hall sensor**, both galvanically isolated.
-- Fuse each mains branch; keep mains and logic grounds separate.
+- The **relay board's optocouplers** and the **ACS712's Hall element** are the only components crossing the mains↔logic boundary; both are isolating parts.
+- Fuse each mains branch; keep mains and logic grounds separate; add flyback protection for the fan motors.
 
-## 10. Validation approach
-- **Simulator:** toggle each switch (or let firmware toggle) and confirm the serial log flips ON/OFF and watts update; sweep each pot and confirm the current reading tracks.
-- **Logic check:** verify active-low inversion (open switch ⇒ "OFF"), and that total watts = sum of ON devices.
-- **End-to-end (bonus):** confirm the ESP32's posted values appear on the dashboard and via the Discord `!status`/`!usage` commands — proving one shared source of truth.
+## 11. Validation approach
+- **Simulator:** flip a Firebase `status` value and confirm the matching relay (and its LED/motor) switches; sweep the pot and confirm the current reading tracks.
+- **Logic check:** verify active-LOW relay drive (Firebase `false` ⇒ relay off ⇒ LED dark), and that total watts = sum of ON devices.
+- **End-to-end:** confirm the dashboard and Discord `!status`/`!usage` show the same state that drives the relays — proving one shared source of truth.
 
-## 11. What to put in the repo for this deliverable
-1. The Wokwi (or Tinkercad) schematic screenshot / share link.
+## 12. What to put in the repo for this deliverable
+1. The Wokwi schematic screenshot (`img/wokwi.jpg`) / share link.
 2. This document (pin maps + reasoning).
 3. A one-line note that the channel is representative and repeats ×5 per room, ×3 rooms.

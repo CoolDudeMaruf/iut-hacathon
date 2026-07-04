@@ -23,7 +23,7 @@ The office has **3 rooms**:
 
 Every room has the same devices: **2 fans and 3 lights** (so 5 devices per room, 15 devices total).
 
-> *Note: The doc's headline text says "15 devices total" while the deliverables and office layout diagram refer to "18 devices" (2 fans + 3 lights = 5 per room × 3 = 15; the "18" appears throughout the requirements). Treat **18 devices** as the working count per the deliverables and layout, but flag this inconsistency with organizers if it matters.*
+> *Note: The brief is internally inconsistent — its headline says "15 devices total" while some deliverable text says "18". The math is unambiguous: 2 fans + 3 lights = 5 per room × 3 rooms = **15** (6 fans + 9 lights). This project uses **15 devices**, matching the room layout and `server/simulation.js`.*
 
 ---
 
