@@ -5,11 +5,7 @@
 
 ## The One Rule: A Single Source Of Truth
 
-```
-[Simulated Device Layer] -> [Shared Node.js Backend] -> [Web Dashboard]
-                                                   -> [Discord Bot]
-                                                   -> [Firebase RTDB mirror]
-```
+
 
 Everything starts from `server/simulation.js`. It owns the live device state,
 virtual clock, power totals, energy usage, and alerts. The web dashboard and the
