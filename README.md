@@ -20,21 +20,7 @@ Repo: <https://github.com/CoolDudeMaruf/Techathon2026-ShadowMonarch>
 - 💾 **JSON device store** — every state change is persisted to `data/state.json`,
   so device state survives a restart.
 
----
 
-## The office (fixed)
-
-3 rooms — **Drawing Room, Work Room 1, Work Room 2** — each with **2 fans + 3
-lights**. That is `3 × 5 = 15` devices (6 fans + 9 lights).
-
-> **Note on the device count.** The problem statement is internally inconsistent:
-> its headline says "15 devices total", while the layout summary lists "Total
-> Fans: 6, Total Lights: 9" and calls it "18". Six fans plus nine lights is
-> **15**, and the room math (2 + 3 per room × 3) also gives **15**, so this
-> project models **15**. The count lives in one place (`server/simulation.js`) if
-> the organisers confirm otherwise.
-
----
 
 # Part 1 · Run it yourself (step by step)
 
