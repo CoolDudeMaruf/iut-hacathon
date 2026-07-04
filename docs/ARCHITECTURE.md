@@ -1,9 +1,7 @@
 # System Architecture
 
-![High-level system diagram](system-diagram.svg)
+![High-level system diagram](architecture.png)
 
-> The diagram above is a hand-built SVG. Open `docs/system-diagram.svg` in any
-> browser to view or export it.
 
 ## The One Rule: A Single Source Of Truth
 

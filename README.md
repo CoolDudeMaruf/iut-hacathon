@@ -161,6 +161,14 @@ is enough; the other two rooms are identical copies.
 
 ### How the demo differs from real life (important)
 
+> [!IMPORTANT]
+> **⚠️ Wokwi Simulation Note — ACS712 Not Available in Wokwi**
+>
+> In the Wokwi demo, the **ACS712 Current Sensor** is **not available** in the Wokwi
+> component library. Therefore, **Relay Modules** were used as **placeholders** to
+> simulate the ACS712 sensors during testing. In the actual hardware implementation,
+> these relay modules are **replaced with ACS712 Current Sensors**.
+
 In a **real** installation the data flows **sensor → cloud → dashboard**:
 
 - An **ACS712 current sensor** measures each appliance's real current draw and the
@@ -183,6 +191,13 @@ ACS712 would be the *producer* of it. Everything else stays the same.
 
 ### ACS712 current sensor connection
 
+> [!WARNING]
+> **ACS712 Not Available in Wokwi** — The ACS712 Current Sensor component does not
+> exist in the Wokwi component library. Therefore, **Relay Modules** were used as
+> **placeholders** to simulate the ACS712 sensors during testing. In the actual
+> hardware implementation, these relay modules are **replaced with ACS712 Current
+> Sensors**. The table below reflects the **real-world** ACS712 wiring.
+
 Presented as an **ACS712 Current Sensor** (internally a potentiometer in Wokwi):
 
 | ACS712 Pin | Connected To       | ESP32 Pin | Description                                  |
@@ -193,9 +208,11 @@ Presented as an **ACS712 Current Sensor** (internally a potentiometer in Wokwi):
 | IP+        | AC Load Input      | —         | Current input terminal (simulated in Wokwi)  |
 | IP−        | AC Load Output     | —         | Current output terminal (simulated in Wokwi) |
 
-> **Note:** In Wokwi the ACS712 is simulated using a potentiometer because actual
-> current flow through the sensor cannot be simulated. The potentiometer's output
-> voltage emulates the ACS712 analog output.
+> [!NOTE]
+> **Wokwi Simulation:** The ACS712 Current Sensor is **not available** in Wokwi.
+> **Relay Modules** are used as placeholders during simulation. In actual hardware,
+> the relay modules are **replaced with real ACS712 Current Sensors** that produce
+> the analog current-proportional voltage read by GPIO34.
 
 ### ESP32 device control mapping
 
@@ -217,7 +234,7 @@ repeat per room):
 | Firebase Realtime Database | Stores the ON/OFF status of each appliance.                                     |
 | ESP32                      | Reads appliance status from Firebase and controls the corresponding relay.      |
 | Relay Module               | Switches the connected appliance ON or OFF.                                      |
-| ACS712 Current Sensor      | Measures the load current of the connected appliance (simulated in Wokwi).      |
+| ACS712 Current Sensor      | Measures the load current of the connected appliance (**not available in Wokwi — simulated via potentiometer; Relay Module used as replacement**). |
 | Frontend Dashboard         | Displays appliance status and reflects device state driven through Firebase.    |
 
 Extended electrical reasoning (opto-isolation, ADC notes, BOM) is in
