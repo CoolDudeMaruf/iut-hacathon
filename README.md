@@ -44,6 +44,9 @@ npm install
 the Discord bot or conversational replies, copy the example env file and fill in
 what you have:
 
+> **Note:** The actual `.env` file containing the necessary API keys and tokens for the hackathon submission is included in the video drive link. Please download it from there and place it in the same directory as `.env.example` (meaning, save it here as `.env`).
+
+
 ```bash
 cp .env.example .env      # Windows: copy .env.example .env
 ```
