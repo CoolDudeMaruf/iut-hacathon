@@ -247,6 +247,8 @@ Extended electrical reasoning (opto-isolation, ADC notes, BOM) is in
 Everything below is optional. With no `.env` at all, the dashboard and API still
 run — only the Discord bot and LLM phrasing are gated behind these.
 
+> **Note:** The actual `.env` file containing the necessary API keys and tokens for the hackathon submission is included in the video drive link provided separately.
+
 | Variable | Default | What it does |
 |----------|---------|--------------|
 | `PORT` | `3000` | Web/API port |
