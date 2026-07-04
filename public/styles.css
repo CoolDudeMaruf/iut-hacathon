@@ -26,6 +26,71 @@ body {
   min-height: 100vh;
 }
 
+/* Blueprint grid backdrop — fine minor lines + stronger major lines, faded
+   toward the edges with a radial mask so it feels like a pro control panel. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.11) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.11) 1px, transparent 1px),
+    linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 160px 160px, 160px 160px, 32px 32px, 32px 32px;
+  -webkit-mask-image: radial-gradient(1600px 1100px at 60% -5%, #000 32%, transparent 92%);
+  mask-image: radial-gradient(1600px 1100px at 60% -5%, #000 32%, transparent 92%);
+}
+
+/* ---- floating Discord button (always on top, bottom-right) ---- */
+.discord-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(88, 101, 242, 0.45), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.discord-fab svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+.discord-fab:hover {
+  transform: translateY(-3px) scale(1.06);
+  background: #4752c4;
+  box-shadow: 0 12px 28px rgba(88, 101, 242, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+.discord-fab:active {
+  transform: translateY(-1px) scale(1.02);
+}
+.discord-fab:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+@media (max-width: 820px) {
+  .discord-fab {
+    right: 16px;
+    bottom: 16px;
+    width: 52px;
+    height: 52px;
+  }
+  .discord-fab svg {
+    width: 26px;
+    height: 26px;
+  }
+}
+
 /* ---- top bar ---- */
 .topbar {
   display: flex;
@@ -91,6 +156,56 @@ body {
   background: var(--panel-2);
   color: var(--muted);
   border-color: var(--line);
+}
+
+/* ---- play / pause simulation toggle ---- */
+.sim-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.1s ease;
+}
+.sim-toggle:hover {
+  border-color: var(--accent);
+}
+.sim-toggle:active {
+  transform: scale(0.97);
+}
+.sim-toggle:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+.sim-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+/* Show the pause icon while running, the play icon while paused. */
+.sim-toggle .ico-play {
+  display: none;
+  color: var(--good);
+}
+.sim-toggle .ico-pause {
+  color: var(--accent);
+}
+.sim-toggle.paused .ico-pause {
+  display: none;
+}
+.sim-toggle.paused .ico-play {
+  display: block;
+}
+.sim-toggle.paused {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.12);
 }
 
 /* ---- grid ---- */

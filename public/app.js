@@ -38,10 +38,23 @@ function fmtTime(iso) {
 // ---- renderers ------------------------------------------------------------
 function render(state) {
   renderClock(state.time);
+  renderToggle(state.time.paused);
   renderLayout(state);
   renderPower(state);
   renderAlerts(state.alerts);
   renderDevices(state);
+}
+
+// Reflect the simulation's paused state on the play/pause button.
+function renderToggle(paused) {
+  const btn = $('sim-toggle');
+  if (!btn) return;
+  btn.classList.toggle('paused', !!paused);
+  const label = paused ? 'Play' : 'Pause';
+  btn.querySelector('.sim-toggle-label').textContent = label;
+  const action = paused ? 'Resume simulation' : 'Pause simulation';
+  btn.setAttribute('aria-label', action);
+  btn.setAttribute('title', action);
 }
 
 function renderClock(t) {
@@ -176,6 +189,13 @@ function renderDevices(state) {
 
 // ---- events ---------------------------------------------------------------
 socket.on('state', render);
+
+// Play / pause the running simulation. The button reflects the server's paused
+// state, which arrives back over the socket as a fresh snapshot.
+$('sim-toggle')?.addEventListener('click', () => {
+  const paused = $('sim-toggle').classList.contains('paused');
+  api(paused ? '/resume' : '/pause');
+});
 
 // Manual override has been removed per user request (no playground mode).
 

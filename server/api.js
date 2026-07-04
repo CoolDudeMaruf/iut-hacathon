@@ -26,6 +26,10 @@ export function createApiRouter(simulation) {
 
   router.get('/alerts', (_req, res) => res.json(simulation.getState().alerts));
 
+  // Pause / resume the running simulation (used by the dashboard play/pause button).
+  router.post('/pause', (_req, res) => respond(res, simulation.pause(), simulation));
+  router.post('/resume', (_req, res) => respond(res, simulation.resume(), simulation));
+
   return router;
 }
 
